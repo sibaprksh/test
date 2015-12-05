@@ -1,0 +1,15 @@
+ONline-User
+-----------
+
+{
+	_id : ........
+	id : ....... (user._id)
+	name : ........
+	avatar : ......
+}
+
+
+
+
+1. on connect -- set 
+2. on disconnect 

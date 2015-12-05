@@ -1,0 +1,14 @@
+[
+	{
+	    "provider": "local",
+	    "name": "Jitu Sahu",
+	    "email": "jitu@gmail.com",
+	    "password": "jitu"
+  	}, {
+	    "provider": "local",
+	    "role": "admin",
+	    "name": "Siba prakash",
+	    "email": "siba@gmail.com",
+	    "password": "prakash"
+  	}
+]

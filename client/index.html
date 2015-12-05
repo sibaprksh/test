@@ -1,0 +1,80 @@
+
+<script src="socket.io.js"></script>
+<script src="lib/jquery-1.11.1.js"></script>
+<script src="lib/jquery.cookie.js"></script>
+
+<link rel="stylesheet" href="css/bootstrap.min.css"> 
+
+<body>
+
+	<h4>This is Auth page</h4>
+	<div id="uId"></div>
+
+	<button id="logout">Logout</button>
+		
+	<script>
+
+		var sktOn = {			
+			"connect" : function(){
+				console.log('authenticated');
+			},
+			"disconnect" : function(){
+				console.log('disconnected');
+			},
+			"ONLINE_FRND" : function(data){
+				console.log("ONLINE_FRND");
+			    console.log(data);
+			},
+			"OFFLINE_FRND" : function(data){
+				console.log("OFFLINE_FRND");
+			    console.log(data);
+			},
+			"ONLINE_FRNDS" : function(data){
+				console.log('ONLINE_FRNDS');
+			    console.log(data);
+			},
+			"FRND_REQUEST_RCVED" : function(data){
+				console.log('FRND_REQUEST_RCVED');
+				console.log(data);
+			},
+			"FRND_REQUEST_SENT" : function(data){
+				console.log('FRND_REQUEST_SENT');
+				console.log(data);
+			}
+		};
+		
+
+		(function connect_socket (token,uId) {
+			if(!token || !uId){
+				location.href = "/login.html";
+			}
+			
+			$("#uId").text(uId);
+
+			  var socket = io.connect('', {
+			    query: 'token=' + token
+			  });
+
+		  // register all socket-on events
+		  for ( var prop in sktOn ) {
+		  	 if(sktOn.hasOwnProperty(prop)){	            
+	            socket.on(prop, sktOn[prop]);
+	         }
+		  };
+
+		})(
+			$.cookie("token"),
+			$.cookie("uId")			
+		);
+
+		$('#logout').on("click",function(){
+			console.log("Cookies Delete")
+			var cookies = $.cookie();
+			for(var cookie in cookies) {
+			   $.removeCookie(cookie);
+			}
+		});
+
+	</script>
+
+</body>
