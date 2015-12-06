@@ -1,7 +1,10 @@
 
 <script src="socket.io.js"></script>
 <script src="lib/jquery-1.11.1.js"></script>
+<script src="lib/bootstrap.min.js"></script>
+
 <script src="lib/jquery.cookie.js"></script>
+<script src="lib/bootbox.min.js"></script>
 
 <link rel="stylesheet" href="css/bootstrap.min.css"> 
 
@@ -20,6 +23,13 @@
 			},
 			"disconnect" : function(){
 				console.log('disconnected');
+			},
+			"error" : function(error) {
+			  if (error.type == "UnauthorizedError" || error.code == "invalid_token") {			    
+			    bootbox.alert("User's token has expired",function(){
+			    	location.href="/login.html"	
+			    });			    
+			  }
 			},
 			"ONLINE_FRND" : function(data){
 				console.log("ONLINE_FRND");

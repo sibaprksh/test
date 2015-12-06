@@ -26,3 +26,14 @@ var userSeed = require('../api/user/user.seed.json');
 // User.find({}).remove(function() {
 //   User.create(userSeed);
 // });
+
+
+require('../api/online.user/online.user.model')
+	.remove({}, function(err) {
+            if (err) {
+                console.log(err)
+            } else {
+                console.log('Removed all online users');
+            }
+        }
+    );

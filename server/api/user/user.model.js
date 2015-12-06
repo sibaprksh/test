@@ -18,6 +18,9 @@ var UserSchema = new Schema({
     type: String,
     default: 'user'
   },
+
+  logout : Date,
+
   hashedPassword: String,
   provider: String,
   salt: String,
@@ -90,8 +93,8 @@ UserSchema
 UserSchema
   .virtual('chatInfo')
   .get(function() {
-    return {
-      '_id': this._id,
+    return {      
+      '_id' : this._id,
       'name' : this.name,
       'avatar' : this.avatar
     };

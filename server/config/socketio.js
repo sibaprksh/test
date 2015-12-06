@@ -4,104 +4,124 @@
 
 'use strict';
 
-var config = require('./environment');
-var User = require('../api/user/user.model');
+var Q = require('q');
 
+var config = require('./environment');
+
+var OnlineLineCtrl = require('../api/online.user/online.user.controller');
 var FrndCtrl = require('../api/friend/friend.controller');
-var OnlineLine = require('../api/online.user/online.user.model');
 
 var userRoom_prefix = config.socket.room_prefix;
 
-var onlineUsers = {};
+//var OnlineLine = require('../api/online.user/online.user.model');
+//var User = require('../api/user/user.model');
 
-var onlineUserFilter = function(onlineUsers , ids){
-	var onFrnds = [];
-	ids.forEach(function(id){
-		var user;
-		if( user = onlineUsers[id] ){
-			onFrnds.push(user);
-		}
-	});
-	return onFrnds;
+
+function onlineUserFilter ( ids , self ){
+  var deferred = Q.defer();
+
+  OnlineLineCtrl.findByIds(ids, self, function(err,docs){
+      if(err)
+        deferred.reject(err);
+      else
+        deferred.resolve(docs);
+  });
+
+	return deferred.promise;
 };
 
 // When the user disconnects.. perform this
 function onDisconnect(socket,io) {
-  var id = socket.userId;
-  var user = onlineUsers[id];
 
-  console.log( "onDisconnect : Room :" + userRoom_prefix + id );
-  
-  if(io.sockets.adapter.rooms[userRoom_prefix + id])
-  	console.log(Object.keys(io.sockets.adapter.rooms[userRoom_prefix + id]).length);
-  else
-  	console.log("Undefine room");
+  console.log("After disconnect");
 
+  var userId = socket.decoded_token._id;  // get user._id from token
+ 
+  var isLogout;
 
-  delete onlineUsers[id];
+  if(!io.sockets.adapter.rooms[userRoom_prefix + userId])
+  	isLogout = true;
 
-  FrndCtrl.find.confirm(id, function(friends){
-      if(friends && friends.length > 0){
-          // collect user who is online
-          var online = onlineUserFilter( onlineUsers, friends );
+  console.log("isLogout : "+ isLogout);
 
-          // ittirate over online user to emit about new-user-login
-          online.forEach(function(frnd){
-            var fId = frnd._id ;
-            io.to(userRoom_prefix+fId).emit('OFFLINE_FRND', user);
-          });
-         
-         
-      }
-  });
+  if( isLogout ){
+
+    FrndCtrl.find.confirm(userId, function(frndIds, self){
+
+        if(frndIds && frndIds.length > 0){
+
+            // collect user who is online
+            var promis = onlineUserFilter( frndIds );
+            promis.then(function(online){
+                // ittirate over online user to emit about new-user-login
+                online.forEach(function(frnd){
+                  var fId = frnd.user.toString() ;
+                  io.to(userRoom_prefix+fId).emit('OFFLINE_FRND', self);
+                });                               
+            });            
+        }
+       
+        OnlineLineCtrl.destroy(self,function(status){
+          if(status == true)
+            console.log("removed logout user from db");
+        });
+    });
+
+  };
 
 };
 
 function handleOnline(socket,io){
-  //var userId = socket.handshake.query.userId;
-  var userId = socket.decoded_token._id;
-
-  console.log("I am inside onConnect");
-  console.log("user Id : "+ userId);
 
   debugger;
 
-  console.log( "Before join the Room :" + userRoom_prefix + userId );
-  if(io.sockets.adapter.rooms[userRoom_prefix + userId])
-  	console.log(Object.keys(io.sockets.adapter.rooms[userRoom_prefix + userId]).length);
-  else
-  	console.log("Undefine room");
+  var userId = socket.decoded_token._id;  // get user._id from token
+  var isNewLogin;                         // will give user is logged in before (or) not
+  
+  if(! io.sockets.adapter.rooms[userRoom_prefix + userId] ){
+    isNewLogin = true;    
+  }
 
-  socket.userId = userId;                     //* add _id
-  socket.join(userRoom_prefix + userId);      //* add to room
+  //socket.userId = userId;                     //* add _id
+  socket.join(userRoom_prefix + userId);      //* join to room
 
-  console.log( "After join the Room :" + userRoom_prefix + userId );
-  console.log(Object.keys(io.sockets.adapter.rooms[userRoom_prefix + userId]).length);
 
-  if(! onlineUsers[userId] ){
+    FrndCtrl.find.confirm(userId, function(frndIds, self){
 
-    var key = userId;
-    //onlineUsers[key] = { _id : userId, name : "", pic : "" };
-
-    FrndCtrl.find.confirm(key, function(friends, self){
-        
-        onlineUsers[key] = self; // set user
-
-        if(friends && friends.length > 0){
-            // collect user who is online
-            var online = onlineUserFilter( onlineUsers, friends );
-
-            // ittirate over online user to emit about new-user-login
-            online.forEach(function(frnd){
-              var fId = frnd._id ;
-              io.to(userRoom_prefix+fId).emit('ONLINE_FRND', self);
-            });
-           
-            socket.emit('ONLINE_FRNDS',online);
+        if(frndIds && frndIds.length > 0){            
+            var promis = onlineUserFilter( frndIds , self );  // collect user who is online
+            promis.then(function(online){                
+                if( isNewLogin ){
+                  online.forEach(function(frnd){ // ittirate over online user to emit about new-user-login
+                    var fId = frnd.user.toString() ;
+                    io.to(userRoom_prefix+fId).emit('ONLINE_FRND', self);
+                  });              
+                }
+                socket.emit('ONLINE_FRNDS',online);
+            });            
+        }else{
+          socket.emit('ONLINE_FRNDS',[]);
         }
+
+        if( isNewLogin ){
+          self.id = self._id;
+          delete self._id;
+          self.when = Date.now();
+                    
+          OnlineLineCtrl.creteOrUpdate(self,function(err){
+              if(err)
+                console.log(err);
+              else
+                console.log("successfully save to online");
+          });
+
+        };
+
+
+
     });
 
-  };
+
 };
 
 // When the user connects.. perform this
@@ -141,8 +161,8 @@ module.exports = function (socketio) {
 
     // Call onDisconnect.
     socket.on('disconnect', function () {
-      onDisconnect(socket, socketio);
       console.info('[%s] DISCONNECTED', socket.address);
+      onDisconnect(socket, socketio);      
     });    
     
     console.info('[%s] CONNECTED', socket.address);
