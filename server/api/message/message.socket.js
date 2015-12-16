@@ -4,21 +4,45 @@
 
 'use strict';
 
-var Message = require('./message.model');
+var eventEmitter = require('../../components/EventEmitter');
 
-exports.register = function(socket) {
-  Message.schema.post('save', function (doc) {
-    onSave(socket, doc);
-  });
-  Message.schema.post('remove', function (doc) {
-    onRemove(socket, doc);
-  });
+var config = require('../../config/environment');
+var userRoom_prefix = config.socket.room_prefix;
+
+exports.register = function(socket){
+
 }
 
-function onSave(socket, doc, cb) {
-  socket.emit('message:save', doc);
-}
 
-function onRemove(socket, doc, cb) {
-  socket.emit('message:remove', doc);
-}
+exports.registerIO = function(socketio) {
+	eventEmitter.on('NEW_PRIVATE_MSG', function(result){
+		onSave(socketio, result);
+	});
+
+	eventEmitter.on('MSG_DELIVERED', function(result){
+		onDeliver(socketio, result);		
+	});
+
+	eventEmitter.on('MSG_SEEN', function(result){
+		onSeen(socketio, result);		
+	});
+};
+
+function onSave(socketio, result){
+	console.log("NEW_PRIVATE_MSG");		
+	socketio.to(userRoom_prefix + result.to._id).emit('NEW_PRIVATE_MSG', result);
+	socketio.to(userRoom_prefix + result.from._id).emit('NEW_PRIVATE_MSG', result);
+};
+
+function onDeliver(socketio, result){
+	console.log("MSG_DELIVERED");	
+	socketio.to(userRoom_prefix + result.whose._id).emit('MSG_DELIVERED', result);
+	socketio.to(userRoom_prefix + result.whome._id).emit('MSG_DELIVERED', result);	
+};
+
+function onSeen(socketio, result){
+	console.log("MSG_SEEN");	
+	socketio.to(userRoom_prefix + result.whose._id).emit('MSG_SEEN', result);
+	socketio.to(userRoom_prefix + result.who._id).emit('MSG_SEEN', result);	
+};
+

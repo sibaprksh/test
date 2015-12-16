@@ -3,10 +3,28 @@
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
-var MessageSchema = new Schema({
-  name: String,
-  info: String,
-  active: Boolean
+var User = require("../user/user.model");
+
+var Schema = new Schema({
+  from 		 : { type: mongoose.Schema.Types.ObjectId, ref : "User"},
+  to 		    : { type: mongoose.Schema.Types.ObjectId, ref : "User"},
+  content   : String,
+  deliver : Date,
+  seen : Date,
+  status : { type : String, default : 'C' } // C-Created, D-Delivered, S-Seen
+},{
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true }
 });
 
-module.exports = mongoose.model('Message', MessageSchema);
+Schema.virtual('when').get( function () { 
+  return this["when"] = this._id.getTimestamp();
+});
+
+// Schema.virtual('deliver_v').get( function () {
+//   if (this["deliver_v"]) return this["deliver_v"];
+//   return this["deliver_v"] = this["seen"];
+// });
+
+
+module.exports = mongoose.model('Message', Schema);

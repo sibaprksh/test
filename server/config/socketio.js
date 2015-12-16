@@ -13,14 +13,23 @@ var FrndCtrl = require('../api/friend/friend.controller');
 
 var userRoom_prefix = config.socket.room_prefix;
 
-//var OnlineLine = require('../api/online.user/online.user.model');
-//var User = require('../api/user/user.model');
+
+// When the user connects.. perform this
+function handleConnect(socket) {
+  require('../api/message/message.socket').register(socket);
+};
+
+// handle socket.io for rooms
+function handleSocketIO(socketio){
+  require('../api/friend/friend.socket').registerIO(socketio);
+  require('../api/message/message.socket').registerIO(socketio); 
+}
 
 
-function onlineUserFilter ( ids , self ){
+function onlineUserFilter ( ids ){
   var deferred = Q.defer();
 
-  OnlineLineCtrl.findByIds(ids, self, function(err,docs){
+  OnlineLineCtrl.findByIds(ids, function(err,docs){
       if(err)
         deferred.reject(err);
       else
@@ -46,7 +55,7 @@ function onDisconnect(socket,io) {
 
   if( isLogout ){
 
-    FrndCtrl.find.confirm(userId, function(frndIds, self){
+    FrndCtrl.findConfirm(userId, function(frndIds){
 
         if(frndIds && frndIds.length > 0){
 
@@ -56,26 +65,25 @@ function onDisconnect(socket,io) {
                 // ittirate over online user to emit about new-user-login
                 online.forEach(function(frnd){
                   var fId = frnd.user.toString() ;
-                  io.to(userRoom_prefix+fId).emit('OFFLINE_FRND', self);
+                  io.to(userRoom_prefix+fId).emit('OFFLINE_FRND', userId);
                 });                               
             });            
         }
        
-        OnlineLineCtrl.destroy(self,function(status){
+        OnlineLineCtrl.destroy(userId,function(status){
           if(status == true)
             console.log("removed logout user from db");
         });
     });
 
   };
-
 };
 
 function handleOnline(socket,io){
 
   debugger;
-
-  var userId = socket.decoded_token._id;  // get user._id from token
+  var self = socket.decoded_token;
+  var userId = self._id;  // get user._id from token
   var isNewLogin;                         // will give user is logged in before (or) not
   
   if(! io.sockets.adapter.rooms[userRoom_prefix + userId] ){
@@ -86,10 +94,10 @@ function handleOnline(socket,io){
   socket.join(userRoom_prefix + userId);      //* join to room
 
 
-    FrndCtrl.find.confirm(userId, function(frndIds, self){
+    FrndCtrl.findConfirm(userId, function(frndIds){
 
         if(frndIds && frndIds.length > 0){            
-            var promis = onlineUserFilter( frndIds , self );  // collect user who is online
+            var promis = onlineUserFilter( frndIds );  // collect user who is online
             promis.then(function(online){                
                 if( isNewLogin ){
                   online.forEach(function(frnd){ // ittirate over online user to emit about new-user-login
@@ -120,21 +128,13 @@ function handleOnline(socket,io){
 
 
     });
-
-
-};
-
-// When the user connects.. perform this
-function handleConnect(socketio) {
-  require('../api/friend/friend.socket').register(socketio);
-  //require('../api/message/message.socket').register(socketio); 
 };
 
 module.exports = function (socketio) {
   /**
   *  client side code : (with token)
   *  var socket = io.connect('', {
-  *      query: 'token=' + token + '&userId='+uId
+  *      query: 'token=' + token
   *  });
   **/
   socketio.use(require('socketio-jwt').authorize({
@@ -143,18 +143,15 @@ module.exports = function (socketio) {
   }));
 
 
-  // handle socketio
-  handleConnect(socketio);  
+  // handle socketio (required for room broad-casting)
+  handleSocketIO(socketio);
 
   socketio.on('connection', function (socket) {
-    socket.address = socket.handshake.address !== null ?
-            //socket.handshake.address.address + ':' + socket.handshake.address.port :
-            socket.request.connection.remoteAddress :
-            process.env.DOMAIN;
-
-    debugger;
-
+    
     socket.connectedAt = new Date();
+
+    // handle socket on connect (Register emit on socket)
+    handleConnect(socket);
 
     // handle online user
     handleOnline(socket,socketio);
@@ -163,9 +160,20 @@ module.exports = function (socketio) {
     socket.on('disconnect', function () {
       console.info('[%s] DISCONNECTED', socket.address);
       onDisconnect(socket, socketio);      
-    });    
-    
-    console.info('[%s] CONNECTED', socket.address);
-  });
+    });
 
+
+    // only logs ===========
+    socket.address = socket.handshake.address !== null ?
+            //socket.handshake.address.address + ':' + socket.handshake.address.port :
+            socket.request.connection.remoteAddress :
+            process.env.DOMAIN;
+
+    socket.on('disconnect', function () {
+      console.info('[%s] DISCONNECTED', socket.address);     
+    });    
+    console.info('[%s] CONNECTED', socket.address);
+    // only logs *************
+
+  });
 };

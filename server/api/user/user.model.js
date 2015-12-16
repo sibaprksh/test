@@ -29,25 +29,38 @@ var UserSchema = new Schema({
   google: {},
   github: {},
 
+  // friends : {
+  //   confirm : {
+  //     data : [{       
+  //       'who' : {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+  //       //'when' : { type: Date, default: new Date() }       
+  //     }]  // confirmed friend
+  //   }, 
+  //   rcved : {
+  //     data : [{       
+  //       'who' : { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+  //       //'when' : { type: Date, default: new Date() }       
+  //     }]    // request pending
+  //   },
+  //   sent : {
+  //     data : [{       
+  //       'who' : {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+  //       //'when' : { type: Date, default: new Date() }       
+  //     }]    // request sent
+  //   }
+  // }
+
   friends : {
-    confirm : {
-      data : [{       
-        'who' : {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-        //'when' : { type: Date, default: new Date() }       
-      }]  // confirmed friend
-    }, 
-    rcved : {
-      data : [{       
-        'who' : { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-        //'when' : { type: Date, default: new Date() }       
-      }]    // request pending
-    },
-    sent : {
-      data : [{       
-        'who' : {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-        //'when' : { type: Date, default: new Date() }       
-      }]    // request sent
-    }
+    rcved   : { type : Number, default : 0 },
+    sent    : { type : Number, default : 0 },
+    confirm : { type : Number, default : 0 },
+    data : [{
+        who     : {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+        status  : String,
+        sent    : Date,
+        confirm : Date,
+        rcved   : Date
+    }]
   }
 
 });
@@ -71,7 +84,7 @@ UserSchema
 
 // Public profile information
 UserSchema
-  .virtual('profile')
+  .virtual('public')
   .get(function() {
     return {
       'name': this.name,
@@ -80,14 +93,14 @@ UserSchema
   });
 
 // Non-sensitive info we'll be putting in the token
-UserSchema
-  .virtual('token')
-  .get(function() {
-    return {
-      '_id': this._id,
-      'role': this.role
-    };
-  });
+// UserSchema
+//   .virtual('token')
+//   .get(function() {
+//     return {
+//       '_id': this._id,
+//       'role': this.role
+//     };
+//   });
 
 // return info used for chat
 UserSchema

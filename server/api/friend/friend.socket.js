@@ -55,7 +55,7 @@ var eventEmitter = require('../../components/EventEmitter');
 var config = require('../../config/environment');
 var userRoom_prefix = config.socket.room_prefix;
 
-exports.register = function(socketio) {
+exports.registerIO = function(socketio) {
 	eventEmitter.on('FRND_REQUEST_RCVED', function(result){
 
 		console.log("FRND_REQUEST_RCVED");	
@@ -65,6 +65,16 @@ exports.register = function(socketio) {
 
 		var self = result.From;
 		socketio.to(userRoom_prefix + self._id).emit('FRND_REQUEST_SENT', result);
+	});
+	eventEmitter.on('FRND_REQUEST_ACCEPTED', function(result){
+
+		console.log("FRND_REQUEST_ACCEPTED");	
+
+		var who = result.who;
+		socketio.to(userRoom_prefix + who._id).emit('FRND_REQUEST_ACCEPTED', result);
+
+		var whose = result.whose;
+		socketio.to(userRoom_prefix + whose._id).emit('FRND_REQUEST_ACCEPTED', result);
 	});
 };
 

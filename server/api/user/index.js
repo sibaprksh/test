@@ -20,14 +20,4 @@ router.get('/:id', auth.isAuthenticated(), controller.show);
 router.post('/', controller.create);
 
 
-
-var frndController = require('../friend/friend.controller');
-
-// send
-router.get('/friendrequest/send/:id', auth.isAuthenticated(), frndController.send);
-
-// accept
-
-
-
 module.exports = router;

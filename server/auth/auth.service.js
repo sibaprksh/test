@@ -11,9 +11,9 @@ var validateJwt = expressJwt({ secret: config.secrets.session });
 
 /**
  * Attaches the user object to the request if authenticated
- * Otherwise returns 403
+ * Otherwise returns 403 (if no fallback function passed)
  */
-function isAuthenticated() {
+function isAuthenticated(fallback) {
   return compose()
     // Validate jwt
     .use(function(req, res, next) {
@@ -21,17 +21,28 @@ function isAuthenticated() {
       if(req.query && req.query.hasOwnProperty('access_token')) {
         req.headers.authorization = 'Bearer ' + req.query.access_token;
       }
+
+      // added fallback function to be called when no toke available
+      if (fallback && typeof fallback === 'function') {
+      	req.fallback = fallback;
+      }
+
       validateJwt(req, res, next);
     })
     // Attach user to request
     .use(function(req, res, next) {
-      User.findById(req.user._id, function (err, user) {
-        if (err) return next(err);
-        if (!user) return res.status(401).send('Unauthorized');
 
-        req.user = user;
-        next();
-      });
+      console.log("I am here");
+      console.log(req.user._id);
+
+      next();
+      // User.findById(req.user._id, function (err, user) {
+      //   if (err) return next(err);
+      //   if (!user) return res.status(401).send('Unauthorized');
+
+      //   req.user = user;
+      //   next();
+      // });
     });
 }
 
@@ -53,11 +64,12 @@ function hasRole(roleRequired) {
     });
 }
 
+
 /**
  * Returns a jwt token signed by the app secret
  */
-function signToken(id) {
-  return jwt.sign({ _id: id }, config.secrets.session, { expiresIn: 60*5 });
+function signToken(user) {
+  return jwt.sign(user.toObject(), config.secrets.session, { expiresIn: "7d" });
 }
 
 /**
@@ -65,7 +77,7 @@ function signToken(id) {
  */
 function setTokenCookie(req, res) {
   if (!req.user) return res.status(404).json({ message: 'Something went wrong, please try again.'});
-  var token = signToken(req.user._id, req.user.role);
+  var token = signToken(req.user, req.user.role);
   res.cookie('token', JSON.stringify(token));
   res.redirect('/');
 }

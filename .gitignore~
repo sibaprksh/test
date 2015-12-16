@@ -6,6 +6,6 @@ npm-debug.log
 # Ignore 
 ########
 
-#Doc
+Doc
 /server/backup
 /client/backup

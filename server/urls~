@@ -1,0 +1,72 @@
+
+URLs
+====
+
+signup:
+------
+
+POST : /api/users
+payload : 
+{
+	"name": "satya",
+	"email": "satya@gmail.com",
+	"avatar": "satya.png",
+	"password" : "satya"
+}
+
+response : { token : ......... }
+
+
+login:
+-----
+
+POST: /auth/local
+payload :
+{
+	
+  	"email": "siba@gmail.com",  	
+  	"password" : "prakash"
+}
+
+response : { token : ......... }
+
+
+
+search:
+------
+
+GET : /api/users/search/:name
+
+send-req:
+--------
+
+GET : /api/friends/request/send/:friend-id
+
+accept-req:
+----------
+
+GET : /api/friends/request/accept/:friend-id
+
+
+find-all-confirm:
+----------------
+
+GET : /api/friends/confirm
+
+
+find-all-rcved:
+--------------
+
+GET : /api/friends/rcved
+
+find-all-sent:
+-------------
+
+GET : /api/friends/sent
+
+
+
+
+
+sockets
+========

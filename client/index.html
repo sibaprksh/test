@@ -24,6 +24,9 @@
 			"disconnect" : function(){
 				console.log('disconnected');
 			},
+			"reconnect" : function(){
+				console.log("reconnect");
+			},
 			"error" : function(error) {
 			  if (error.type == "UnauthorizedError" || error.code == "invalid_token") {			    
 			    bootbox.alert("User's token has expired",function(){
@@ -49,6 +52,18 @@
 			},
 			"FRND_REQUEST_SENT" : function(data){
 				console.log('FRND_REQUEST_SENT');
+				console.log(data);
+			},
+			"NEW_PRIVATE_MSG" : function(data){
+				console.log('NEW_PRIVATE_MSG');
+				console.log(data);
+			},
+			"MSG_DELIVERED" : function(data){
+				console.log('MSG_DELIVERED');
+				console.log(data);
+			},
+			"MSG_SEEN" : function(data){
+				console.log('MSG_SEEN');
 				console.log(data);
 			}
 		};
